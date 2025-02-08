@@ -1,0 +1,78 @@
+{
+  "name": "MUDE",
+  "displayName": "MUDE music player",
+  "description": "Music player embedded in your editor! 🎧",
+  "publisher": "mayur1377",
+  "version": "1.0.7",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mayur1377/MUDE-music-in-vscode"
+  },
+  "icon": "media/icon.png",
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "MudePlayer.searchMusic",
+        "title": "Search Music",
+        "category": "MUDE"
+      },
+      {
+        "command": "MudePlayer.seekForward",
+        "title": "+10 sec",
+        "category": "MUDE"
+      },
+      {
+        "command": "MudePlayer.seekBackword",
+        "title": "-10 sec",
+        "category": "MUDE"
+      },
+      {
+        "command": "MudePlayer.togglePause",
+        "title": "Toggle Pause",
+        "category": "MUDE"
+      },
+      {
+        "command": "MudePlayer.playNext",
+        "title": "Play Next Track",
+        "category": "MUDE"
+      },
+      {
+        "command": "MudePlayer.playPrevious",
+        "title": "Play Previous Track",
+        "category": "MUDE"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "20.x",
+    "@types/vscode": "^1.91.0",
+    "@typescript-eslint/eslint-plugin": "^7.14.1",
+    "@typescript-eslint/parser": "^7.11.0",
+    "@vscode/test-cli": "^0.0.9",
+    "@vscode/vsce": "^3.2.2",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "node-mpv": "2.0.0-beta.2",
+    "youtube-dl-exec": "^3.0.13",
+    "ytmusic-api": "^5.3.0"
+  }
+}

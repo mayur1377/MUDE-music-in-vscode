@@ -1,38 +1,58 @@
-# VSCode Music Player
+![MUDE Player Screenshot](./media/icon.png)
 
-### Install The Full Featured Ad-Free Blazingly Fast Music/Media player and **You'll never open a tab for music in browser**
+**MUDE Player** is a minimalistic music player integrated into your favorite editor, allowing you to play ad-free music from the comfort of your workspace.
 
-# Features
-- Search and play music from YouTube
-- Create and Play Playlists
-- Play, Pause, Seek and Rewind
-- Play previous/next track
+## Features
 
-# Usage
-![Search Music](./media/Search%20Music.gif)
+- **Seamless Integration**: Control your music directly from the editor.
+- **YouTube Music**: Search and play music from YouTube Music within the editor, no login, no ads.
+- **Auto-Playlists**: Create playlists from your tracks and play them on the go. No need to search for music every time!
+- **Playback Controls**:
+    - Seek forward (+10 seconds)
+    - Seek backward (-10 seconds)
+    - Play/Pause
+    - Next track
+    - Previous track
 
-# **Requirements** (MPV)
-## It just requires **MPV** on your system, to install MPV
+## Requirements
 
-### You can follow instructions on the [official website](https://mpv.io/installation/) for your platform
+- **MPV**: Ensure MPV is installed on your system to use MUDE Player.
 
-## OR
+For reference: [MPV Installation](https://mpv.io/installation/)
 
-### On linux
-```
-sudo apt install mpv
-```
+You can install MPV using the following command:
 
-### On windows follow instructions on [official site](https://mpv.io/installation/) or you can install it with **chocolatey**
-```
-choco install mpv
-```
-
-### On Mac OS
-```
+For macOS users:
+```bash
 brew install mpv
 ```
 
-# And you are ready to go# music-player-improved
-# music-player-improved
-# music-player-improved
+For Linux users:
+```bash
+sudo apt-get install mpv
+```
+
+For Windows users:
+```bash
+choco install mpv
+```
+
+## How to Contribute
+
+Want to help make MUDE even better? You can contribute by:
+
+- **Improving the Code**: Since this started off as a personal project, there are many areas that can be improved, bugs that can be fixed, and features that can be added. Feel free to fork the repository and make changes.
+
+Check out the [CONTRIBUTING.md](CONTRIBUTING.md) file for more details.
+
+## Found an Issue?
+
+If you find a bug or have a feature request, please create an issue on the repository!
+
+## General Rules
+
+To keep everything smooth and consistent, please:
+
+- Follow the project’s style and contribution rules.
+- Be kind and respectful to others.
+- If you’re unsure, ask questions.
