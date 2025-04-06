@@ -7,29 +7,30 @@ import { youtubeLabelButton } from './statusBar';
 
 // why the retry??? well just for backup if the download fails
 //  to do : but to fix the issue when window1 is playing , but i playnext in window2 , it is tryign to download same thing , some conflict is coming then
-export async function downloadTrack(url: string, path: string, thumbnail?: string): Promise<void> {
+export async function downloadTrack(url: string, path: string): Promise<void> {
     console.log(`Starting download from ${url} to ${path}`);
     let attempts = 0;
     const maxAttempts = 3;
 
     while (attempts < maxAttempts) {
         try {
-            // Use youtube-dl-exec to download the audio-only track in .webm format
             await youtubedl(url, {
-                output: path, // Path to save the file
-                format: 'bestaudio[ext=webm]', // Specify WebM format for audio
+                output: path,
+                format: 'bestaudio/best', // Don't restrict to webm
             });
             console.log('Download completed');
             return;
-        } catch (err) {
+        } catch (err: any) {
             attempts++;
-            console.error(`Download failed (attempt ${attempts} of ${maxAttempts})`, err);
+            console.error(`Download failed (attempt ${attempts} of ${maxAttempts})`);
+            console.error(err.stderr || err.stdout || err.message || err);
             if (attempts >= maxAttempts) {
                 throw new Error('Download failed after 3 attempts');
             }
         }
     }
 }
+
 
 export async function getSearchResults(query: string): Promise<any> {
     try {
