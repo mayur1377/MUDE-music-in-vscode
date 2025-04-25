@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { searchMusic } from './searchMusic';
 import { player } from './player';
 import { controls } from './controls';
-import { statusBar, youtubeLabelButton, stoppedState } from './statusBar';
+import { statusBar, youtubeLabelButton, stoppedState, playingState } from './statusBar';
 import * as fs from "fs";
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -22,6 +22,21 @@ export async function activate(context: vscode.ExtensionContext) {
 	searchMusic(context);
 	controls(context);
 	statusBar(context);
+
+	// Restore playback if there's a valid file path
+	const lastPlayedFilePath = context.globalState.get<string>('lastPlayedFilePath');
+	if (lastPlayedFilePath && fs.existsSync(lastPlayedFilePath)) {
+		try {
+			await player.load(lastPlayedFilePath);
+			// Don't automatically play, just show the controls
+			await playingState(context);
+			// Pause the player immediately after loading
+			await player.pause();
+		} catch (error) {
+			console.error("Error restoring playback:", error);
+			await stoppedState(context);
+		}
+	}
 }
 
 export async function deactivate(context: vscode.ExtensionContext) {

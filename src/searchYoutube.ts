@@ -62,6 +62,8 @@ export async function processTrack(context: vscode.ExtensionContext, url: string
         console.log(`YTMusic url: ${ytmusicurl}`);
         await downloadTrack(url, downloadPath);
         await context.globalState.update('youtubeLabelButton', title);
+        // Store the file path in global state
+        await context.globalState.update('lastPlayedFilePath', downloadPath);
         vscode.commands.executeCommand('extension.refreshYoutubeLabelButton');
         await playingState(context);
 
@@ -76,6 +78,7 @@ export async function processTrack(context: vscode.ExtensionContext, url: string
     }
 }
 
+console.log("vartaaman aankho ka dokha hai!")
 function registerStopHandler(context: vscode.ExtensionContext) {
     if (currentStopHandler) {
         player.off('stopped', currentStopHandler);
