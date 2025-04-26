@@ -6,8 +6,14 @@ import { player } from './player';
 import { getRecommendations } from './getRecommendations';
 import { recommendations, currentRecommendationIndex, resetRecommendations, addRecommendation, updateRecommendationIndex } from './recommendations';
 import * as path from 'path';
+import { fetchLyrics } from './lyrics';
 
 let currentStopHandler: (() => void) | null = null;
+
+// Helper function to update artist name in global state
+async function updateCurrentArtist(context: vscode.ExtensionContext, artistName: string) {
+    await context.globalState.update('currentArtist', artistName);
+}
 
 export function getDownloadPath(context: vscode.ExtensionContext): string {
     const filePath = path.join(context.globalStorageUri.fsPath, 'youtube_download.webm');
@@ -24,8 +30,13 @@ export async function searchYoutube(context: vscode.ExtensionContext) {
     if (!pick) {
         return;
     }
-    
+
     console.log("Search pick:", pick);
+
+    // @ts-expect-error
+    await updateCurrentArtist(context, pick.data.artist.name);
+    console.log("Current artist:", await context.globalState.get('currentArtist'));
+
     // @ts-expect-error
     const baseurl = `https://www.youtube.com/watch?v=${pick.data.videoId}`;
     // @ts-expect-error
@@ -67,6 +78,12 @@ export async function processTrack(context: vscode.ExtensionContext, url: string
         vscode.commands.executeCommand('extension.refreshYoutubeLabelButton');
         await playingState(context);
 
+        // Get current artist from global state and fetch lyrics
+        const artistName = await context.globalState.get<string>('currentArtist', '');
+        console.log("Artist name:", artistName);
+        console.log("Title:", title);
+        await fetchLyrics(title, artistName);
+
         await player.load(downloadPath);
         await player.play();
 
@@ -100,6 +117,13 @@ function registerStopHandler(context: vscode.ExtensionContext) {
 
             console.log(`Next recommendation:`, nextRecommendation);
             let ytmusicurl = `https://music.youtube.com/watch?v=${nextRecommendation.videoId}`;
+
+            // Extract artist from title and update
+            const titleParts = nextRecommendation.title.split(' - ');
+            if (titleParts.length > 1) {
+                await updateCurrentArtist(context, titleParts[1].trim());
+                console.log('Updated artist in stop handler:', titleParts[1].trim());
+            }
 
             await processTrack(context, ytmusicurl, nextRecommendation.title, ytmusicurl);
             await playingState(context); // Ensure playing state is shown when the next track starts

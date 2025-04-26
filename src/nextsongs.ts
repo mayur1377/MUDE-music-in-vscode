@@ -2,6 +2,11 @@ import * as vscode from 'vscode';
 import { recommendations, currentRecommendationIndex, updateRecommendationIndex } from './recommendations'; // Import recommendations.ts
 import { processTrack } from './searchYoutube'; // Import processTrack from searchYoutube.ts
 
+// Helper function to update artist name in global state
+async function updateCurrentArtist(context: vscode.ExtensionContext, artistName: string) {
+    await context.globalState.update('currentArtist', artistName);
+}
+
 export async function downloadAndPlayNext(context: vscode.ExtensionContext) {
     console.log(`End of playlist reached. Checking for recommendations.`);
     if (currentRecommendationIndex < recommendations.length) {
@@ -15,6 +20,11 @@ export async function downloadAndPlayNext(context: vscode.ExtensionContext) {
 
         console.log(`Next recommendation:`, nextRecommendation);
         let ytmusicurl = `https://music.youtube.com/watch?v=${nextRecommendation.videoId}`;
+        
+        // Update artist name before processing track
+        // @ts-expect-error
+        await updateCurrentArtist(context, nextRecommendation.artists);
+        
         await processTrack(context, ytmusicurl, nextRecommendation.title, ytmusicurl); // Call your processTrack with the next recommendation
     } else {
         console.log(`No more tracks available in this playlist or recommendations.`);
@@ -35,6 +45,11 @@ export function addToNextAndPlay(context: vscode.ExtensionContext) {
 
         console.log(`Next recommendation:`, nextRecommendation);
         let ytmusicurl = `https://music.youtube.com/watch?v=${nextRecommendation.videoId}`;
+        
+        // Update artist name before processing track
+        // @ts-expect-error
+        updateCurrentArtist(context, nextRecommendation.artists);
+        
         processTrack(context, ytmusicurl, nextRecommendation.title, ytmusicurl); // Call your processTrack with the next recommendation
     } else {
         console.log(`No more tracks next in playlist or recommendations.`);
@@ -54,6 +69,11 @@ export function addLastToNextAndPlay(context: vscode.ExtensionContext) {
 
         console.log(`Previous recommendation:`, prevRecommendation);
         let ytmusicurl = `https://music.youtube.com/watch?v=${prevRecommendation.videoId}`;
+        
+        // Update artist name before processing track
+        // @ts-expect-error
+        updateCurrentArtist(context, prevRecommendation.artists);
+        
         processTrack(context, ytmusicurl, prevRecommendation.title, ytmusicurl); // Call your processTrack with the previous recommendation
     } else {
         vscode.window.showWarningMessage("No tracks beyond in playlist or recommendations.");

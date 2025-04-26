@@ -3,6 +3,7 @@ import { player } from './player';
 import { searchYoutube } from './searchYoutube';
 import { recommendations, currentRecommendationIndex } from './recommendations';
 import { updateRecommendationIndex } from './recommendations';
+import { getCurrentLyric } from './lyrics';
 
 export let togglePauseButton: vscode.StatusBarItem;
 export let seekForwardButton: vscode.StatusBarItem;
@@ -12,6 +13,7 @@ export let playPreviousButton: vscode.StatusBarItem;
 export let youtubeLabelButton: vscode.StatusBarItem;
 export let timestampButton: vscode.StatusBarItem;
 export let logoButton: vscode.StatusBarItem;
+export let lyricsButton: vscode.StatusBarItem;
 
 export async function statusBar(context: vscode.ExtensionContext) {
     seekBackwordButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 185);
@@ -41,9 +43,13 @@ export async function statusBar(context: vscode.ExtensionContext) {
     youtubeLabelButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 180);
     let storedValue = context.globalState.get<string>('youtubeLabelButton', '');
     youtubeLabelButton.text = storedValue;
+    const currentArtist = context.globalState.get<string>('currentArtist', '');
+    if (currentArtist) {
+        youtubeLabelButton.tooltip = `Artist: ${currentArtist}`;
+    }
     youtubeLabelButton.show();
 
-    timestampButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 170);
+    timestampButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 175);
     timestampButton.text = '';
     // timestampButton.show();
 
@@ -52,6 +58,10 @@ export async function statusBar(context: vscode.ExtensionContext) {
     logoButton.command = 'MudePlayer.searchYoutube';
     logoButton.tooltip = 'Search for some music!!';
     logoButton.show();
+
+    lyricsButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 170);
+    lyricsButton.text = '';
+    lyricsButton.show();
 
     context.subscriptions.push(
         logoButton,
@@ -62,13 +72,18 @@ export async function statusBar(context: vscode.ExtensionContext) {
         playNextButton,
         youtubeLabelButton,
         timestampButton,
+        lyricsButton,
         vscode.commands.registerCommand('MudePlayer.searchYoutube', () => searchYoutube(context)),
         vscode.commands.registerCommand('extension.refreshYoutubeLabelButton', () => {
             let newValue = context.globalState.get<string>('youtubeLabelButton', '');
             youtubeLabelButton.text = newValue;
+            const currentArtist = context.globalState.get<string>('currentArtist', '');
+            if (currentArtist) {
+                youtubeLabelButton.tooltip = `Artist: ${currentArtist}`;
+            }
         }),
         vscode.commands.registerCommand('extension.refreshRecommendations', () => {
-            const newRecommendations = context.globalState.get<{ videoId: string, title: string }[]>('recommendations', []);
+            const newRecommendations = context.globalState.get<{ videoId: string; title: string; artists: { artistId: string | null; name: string; }; }[]>('recommendations', []);
             const newIndex = context.globalState.get<number>('currentRecommendationIndex', 0);
             recommendations.splice(0, recommendations.length, ...newRecommendations);
             updateRecommendationIndex(newIndex);
@@ -144,6 +159,7 @@ export async function playingState(context: vscode.ExtensionContext) {
     seekForwardButton.show();
     playNextButton.show();
     timestampButton.show();
+    lyricsButton.show();
     await context.globalState.update('isPlaying', true);
 }
 
@@ -154,12 +170,23 @@ export async function stoppedState(context: vscode.ExtensionContext) {
     seekForwardButton.hide();
     playNextButton.hide();
     timestampButton.hide();
+    lyricsButton.hide();
     await context.globalState.update('isPlaying', false);
 }
 
 player.on('timeposition', async (timePosition: number) => {
     const time = new Date(timePosition * 1000).toISOString();
     timestampButton.text = timePosition < 3600 ? time.substring(14, 19) : time.substring(11, 19);
+    
+    // Update lyrics with better formatting
+    const currentLyric = getCurrentLyric(timePosition);
+    if (currentLyric) {
+        lyricsButton.text = `🎵 ${currentLyric}`;
+        console.log(`Current time: ${timePosition}s, Lyric: ${currentLyric}`);
+    } else {
+        lyricsButton.text = '';
+    }
+    
     updateTooltips();
     vscode.commands.executeCommand('extension.refreshYoutubeLabelButton');
     vscode.commands.executeCommand('extension.refreshRecommendations');
