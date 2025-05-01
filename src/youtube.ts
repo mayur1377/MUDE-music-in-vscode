@@ -3,7 +3,7 @@ import youtubedl from 'youtube-dl-exec';
 import YTMusic from 'ytmusic-api';
 const ytmusic = new YTMusic();
 import { youtubeLabelButton } from './statusBar';
-
+import { addToSearchHistory, showSearchHistory, clearSearchHistory } from './searchHistory';
 
 // why the retry??? well just for backup if the download fails
 //  to do : but to fix the issue when window1 is playing , but i playnext in window2 , it is tryign to download same thing , some conflict is coming then
@@ -34,7 +34,7 @@ export async function downloadTrack(url: string, path: string): Promise<void> {
 
 export async function getSearchResults(query: string): Promise<any> {
     try {
-        
+
         await ytmusic.initialize(); // This should be awaited to ensure initialization is done properly
         const songs = await ytmusic.searchSongs(query);
         const videos = await ytmusic.searchVideos(query);
@@ -48,6 +48,28 @@ export async function getSearchResults(query: string): Promise<any> {
 }
 
 export async function getSearchPick(context: vscode.ExtensionContext) {
+    // Show options: New search or History
+    const searchOption = await vscode.window.showQuickPick(
+        [
+            { label: '$(search) New Search', value: 'new' },
+            { label: '$(history) Recent Plays', value: 'history' },
+            { label: '$(trash) Clear History', value: 'clear' }
+        ],
+        { placeHolder: 'Search or view recent plays' }
+    );
+
+    if (!searchOption) {
+        return;
+    }
+
+    // Handle different options
+    if (searchOption.value === 'history') {
+        return await showSearchHistory(context);
+    } else if (searchOption.value === 'clear') {
+        clearSearchHistory(context);
+        return;
+    }
+
     const input = await vscode.window.showInputBox({
         prompt: 'Search YouTube Music',
         placeHolder: 'Search YouTube Music',
@@ -81,7 +103,13 @@ export async function getSearchPick(context: vscode.ExtensionContext) {
         }),
         {}
     );
+
     await context.globalState.update('youtubeLabelButton', context.globalState.get('previousyoutubeLabelButton'));
+    vscode.commands.executeCommand('extension.refreshYoutubeLabelButton');
+    // If a song was selected, add it to the history
+    if (pick) {
+        addToSearchHistory(context, pick);
+    }
     console.log('Search pick:', pick);
     return pick;
 }
