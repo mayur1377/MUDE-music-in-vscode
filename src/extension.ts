@@ -23,18 +23,22 @@ export async function activate(context: vscode.ExtensionContext) {
 	controls(context);
 	statusBar(context);
 
-	// Restore playback if there's a valid file path
-	const lastPlayedFilePath = context.globalState.get<string>('lastPlayedFilePath');
-	if (lastPlayedFilePath && fs.existsSync(lastPlayedFilePath)) {
-		try {
-			await player.load(lastPlayedFilePath);
-			// Don't automatically play, just show the controls
-			await playingState(context);
-			// Pause the player immediately after loading
-			await player.pause();
-		} catch (error) {
-			console.error("Error restoring playback:", error);
-			await stoppedState(context);
+	// Check if MPV is already playing something
+	const hasMedia = await player.getProperty('media-title');
+	
+	// If no media is playing, try to restore the last played file
+	if (!hasMedia) {
+		const lastPlayedFilePath = context.globalState.get<string>('lastPlayedFilePath');
+		if (lastPlayedFilePath && fs.existsSync(lastPlayedFilePath)) {
+			try {
+				await player.load(lastPlayedFilePath);
+				await playingState(context);
+				// When restoring after restart, start paused
+				await player.pause();
+			} catch (error) {
+				console.error("Error restoring playback:", error);
+				await stoppedState(context);
+			}
 		}
 	}
 }
