@@ -49,7 +49,7 @@ export async function showSearchHistory(context: vscode.ExtensionContext) {
     const history: HistoryItem[] = context.globalState.get('youtubeSearchHistory', []);
     
     if (history.length === 0) {
-        vscode.window.showInformationMessage('No search history available');
+        vscode.window.showInformationMessage('Nothing yet , maybe play some songs?');
         return;
     }
     
@@ -81,7 +81,7 @@ export async function showSearchHistory(context: vscode.ExtensionContext) {
 // Clear search history
 export function clearSearchHistory(context: vscode.ExtensionContext): void {
     context.globalState.update('youtubeSearchHistory', []);
-    vscode.window.showInformationMessage('YouTube Music search history cleared');
+    vscode.window.showInformationMessage('Search history cleared');
 }
 
 // Get the currently stored pick
