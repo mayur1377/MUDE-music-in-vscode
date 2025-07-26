@@ -3,7 +3,7 @@ export let recommendations: { videoId: string, title: string }[] = [];
 export let currentRecommendationIndex = 0;
 
 export function resetRecommendations() {
-    recommendations = [];
+    recommendations.length = 0;  // clear the in-memory array
     currentRecommendationIndex = 0;
 }
 

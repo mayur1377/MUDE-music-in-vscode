@@ -32,7 +32,10 @@ export async function searchYoutube(context: vscode.ExtensionContext) {
     const ytmusicurl = `https://music.youtube.com/watch?v=${pick.data.videoId}`;
 
     // SCRAPE RECOMMENDATIONS IMMEDIATELY
-    resetRecommendations(); // Clear old recommendations
+    resetRecommendations();
+    await context.globalState.update('recommendations', []);
+    await context.globalState.update('currentRecommendationIndex', 0);
+
     const newRecommendations = await getRecommendations(ytmusicurl);
     newRecommendations.forEach(addRecommendation); // Store recommendations globally
 
