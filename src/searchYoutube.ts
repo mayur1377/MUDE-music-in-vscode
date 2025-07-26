@@ -81,7 +81,6 @@ export async function processTrack(context: vscode.ExtensionContext, url: string
     }
 }
 
-console.log("vartaaman aankho ka dokha hai!")
 function registerStopHandler(context: vscode.ExtensionContext) {
     if (currentStopHandler) {
         player.off('stopped', currentStopHandler);
