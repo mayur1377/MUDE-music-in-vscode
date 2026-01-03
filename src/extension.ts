@@ -24,7 +24,15 @@ export async function activate(context: vscode.ExtensionContext) {
 	statusBar(context);
 
 	// Check if MPV is already playing something
-	const hasMedia = await player.getProperty('media-title');
+	let hasMedia = false;
+	try {
+		const mediaTitle = await player.getProperty('media-title');
+		hasMedia = !!mediaTitle;
+	} catch (error) {
+		// Property unavailable means no media is loaded, which is fine
+		console.log("No media currently loaded in MPV");
+		hasMedia = false;
+	}
 	
 	// If no media is playing, try to restore the last played file
 	if (!hasMedia) {
@@ -39,6 +47,9 @@ export async function activate(context: vscode.ExtensionContext) {
 				console.error("Error restoring playback:", error);
 				await stoppedState(context);
 			}
+		} else {
+			// No media and nothing to restore, set to stopped state
+			await stoppedState(context);
 		}
 	}
 }

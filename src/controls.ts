@@ -7,19 +7,24 @@ export function controls(context: vscode.ExtensionContext) {
     let togglePause = vscode.commands.registerCommand(
         'MudePlayer.togglePause',
         async () => {
-            const state = await player.getProperty('pause'); 
-            if (state) {
-                await player.resume();
-                console.log('Playing');
-                togglePauseButton.text = '$(debug-pause)';
-                togglePauseButton.tooltip = 'Pause';
-            } else {
-                await player.pause();
-                console.log('Paused');
-                togglePauseButton.text = '$(notebook-execute)';
-                togglePauseButton.tooltip = 'Play';
+            try {
+                const state = await player.getProperty('pause'); 
+                if (state) {
+                    await player.resume();
+                    console.log('Playing');
+                    togglePauseButton.text = '$(debug-pause)';
+                    togglePauseButton.tooltip = 'Pause';
+                } else {
+                    await player.pause();
+                    console.log('Paused');
+                    togglePauseButton.text = '$(notebook-execute)';
+                    togglePauseButton.tooltip = 'Play';
+                }
+                togglePauseButton.show();
+            } catch (error) {
+                // No media loaded, can't toggle pause
+                vscode.window.showInformationMessage('No media is currently playing');
             }
-            togglePauseButton.show();
         }
     );
     

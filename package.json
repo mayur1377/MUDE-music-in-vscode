@@ -3,7 +3,7 @@
   "displayName": "MUDE music player",
   "description": "Music player embedded in your editor! 🎧",
   "publisher": "mayur1377",
-  "version": "1.0.10",
+  "version": "1.0.12",
   "repository": {
     "type": "git",
     "url": "https://github.com/mayur1377/MUDE-music-in-vscode"
