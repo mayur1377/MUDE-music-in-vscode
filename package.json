@@ -3,7 +3,7 @@
   "displayName": "MUDE music player",
   "description": "Music player embedded in your editor! 🎧",
   "publisher": "mayur1377",
-  "version": "1.0.12",
+  "version": "1.0.14",
   "repository": {
     "type": "git",
     "url": "https://github.com/mayur1377/MUDE-music-in-vscode"
@@ -55,7 +55,8 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile": "esbuild src/extension.ts --bundle --platform=node --outfile=out/extension.js --external:vscode --external:youtube-dl-exec --external:node-mpv --format=cjs --target=node18",
+    "compile:dev": "esbuild src/extension.ts --bundle --platform=node --outfile=out/extension.js --external:vscode --external:youtube-dl-exec --external:node-mpv --format=cjs --target=node18 --sourcemap",
     "watch": "tsc -watch -p ./",
     "lint": "eslint src --ext ts",
     "package": "vsce package"
@@ -67,11 +68,11 @@
     "@typescript-eslint/parser": "^7.11.0",
     "@vscode/test-cli": "^0.0.9",
     "@vscode/vsce": "^3.2.2",
+    "esbuild": "^0.24.0",
     "eslint": "^8.57.0",
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "genius-lyrics-api": "^3.2.1",
     "node-mpv": "2.0.0-beta.2",
     "youtube-dl-exec": "^3.0.13",
     "ytmusic-api": "^5.3.0"
