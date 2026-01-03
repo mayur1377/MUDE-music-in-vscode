@@ -1,36 +1,270 @@
 import * as vscode from 'vscode';
-import youtubedl from 'youtube-dl-exec';
+import { create } from 'youtube-dl-exec';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import YTMusic from 'ytmusic-api';
 const ytmusic = new YTMusic();
 import { youtubeLabelButton } from './statusBar';
 import { addToSearchHistory, showSearchHistory, clearSearchHistory } from './searchHistory';
 
+/**
+ * Gets the correct yt-dlp binary path for the current platform.
+ * Handles Windows-specific issues where the binary might not have .exe extension.
+ * Uses require.resolve to find the youtube-dl-exec module location reliably.
+ * @returns The path to the yt-dlp binary, or undefined if not found
+ */
+function getYtDlpBinaryPath(): string | undefined {
+    const platform = os.platform();
+    const isWindows = platform === 'win32';
+    
+    try {
+        // Use require.resolve to find the youtube-dl-exec module location
+        // This works reliably in both development and production (installed extension)
+        const youtubeDlExecModulePath = require.resolve('youtube-dl-exec/package.json');
+        const youtubeDlExecPath = path.dirname(youtubeDlExecModulePath);
+        const binPath = path.join(youtubeDlExecPath, 'bin');
+        
+        console.log(`[YT-DLP] Platform: ${platform}`);
+        console.log(`[YT-DLP] youtube-dl-exec module path: ${youtubeDlExecPath}`);
+        console.log(`[YT-DLP] Bin path: ${binPath}`);
+        
+        if (!fs.existsSync(binPath)) {
+            console.error(`[YT-DLP] Bin directory does not exist: ${binPath}`);
+            // Try alternative path resolution
+            return getYtDlpBinaryPathAlternative();
+        }
+        
+        // On Windows, try .exe first, then fallback to no extension
+        if (isWindows) {
+            const exePath = path.join(binPath, 'yt-dlp.exe');
+            const noExtPath = path.join(binPath, 'yt-dlp');
+            
+            // Check if .exe exists
+            if (fs.existsSync(exePath)) {
+                console.log(`[YT-DLP] Found Windows executable: ${exePath}`);
+                return exePath;
+            }
+            
+            // Check if binary without .exe exists (the problematic case)
+            if (fs.existsSync(noExtPath)) {
+                console.log(`[YT-DLP] Found binary without .exe extension: ${noExtPath}`);
+                console.log(`[YT-DLP] This is the Windows issue - binary exists but lacks .exe extension`);
+                
+                try {
+                    const stats = fs.statSync(noExtPath);
+                    if (stats.isFile()) {
+                        console.log(`[YT-DLP] Binary file found, size: ${stats.size} bytes`);
+                        
+                        // Try to create a copy with .exe extension
+                        // This is the fix for the Windows issue
+                        if (!fs.existsSync(exePath)) {
+                            try {
+                                // Use copyFileSync to create the .exe copy
+                                // This ensures Windows can execute it properly
+                                fs.copyFileSync(noExtPath, exePath);
+                                
+                                // Verify the copy was created successfully
+                                if (fs.existsSync(exePath)) {
+                                    const copyStats = fs.statSync(exePath);
+                                    if (copyStats.size === stats.size) {
+                                        console.log(`[YT-DLP] ✓ Created .exe copy: ${exePath}`);
+                                        console.log(`[YT-DLP] Copy verified (size: ${copyStats.size} bytes)`);
+                                        console.log(`[YT-DLP] This should resolve the Windows execution issue`);
+                                        return exePath;
+                                    } else {
+                                        console.warn(`[YT-DLP] Copy size mismatch - original: ${stats.size}, copy: ${copyStats.size}`);
+                                    }
+                                }
+                            } catch (copyErr: any) {
+                                console.warn(`[YT-DLP] Could not create .exe copy: ${copyErr.message}`);
+                                console.warn(`[YT-DLP] This may be a permissions issue. Trying alternative approach...`);
+                                
+                                // Alternative: Try to use the binary directly but with .exe in the path
+                                // Some systems might accept this
+                                console.log(`[YT-DLP] Attempting to use .exe path anyway: ${exePath}`);
+                                return exePath;
+                            }
+                        } else {
+                            // .exe already exists, use it
+                            console.log(`[YT-DLP] .exe file already exists: ${exePath}`);
+                            return exePath;
+                        }
+                    }
+                } catch (statErr: any) {
+                    console.error(`[YT-DLP] Error checking file stats: ${statErr.message}`);
+                }
+            }
+            
+            console.error(`[YT-DLP] No yt-dlp binary found in: ${binPath}`);
+            return getYtDlpBinaryPathAlternative();
+        } else {
+            // On Unix-like systems, binary should be named 'yt-dlp'
+            const unixPath = path.join(binPath, 'yt-dlp');
+            if (fs.existsSync(unixPath)) {
+                console.log(`[YT-DLP] Found Unix binary: ${unixPath}`);
+                return unixPath;
+            }
+            
+            console.error(`[YT-DLP] No yt-dlp binary found in: ${binPath}`);
+            return getYtDlpBinaryPathAlternative();
+        }
+    } catch (resolveErr: any) {
+        console.error(`[YT-DLP] Error resolving youtube-dl-exec module: ${resolveErr.message}`);
+        return getYtDlpBinaryPathAlternative();
+    }
+}
+
+/**
+ * Alternative method to find the binary path using __dirname fallback.
+ * Used when require.resolve fails.
+ */
+function getYtDlpBinaryPathAlternative(): string | undefined {
+    const platform = os.platform();
+    const isWindows = platform === 'win32';
+    
+    try {
+        // Fallback: use __dirname (works in compiled output)
+        // In VS Code extensions, __dirname points to out/ directory
+        const extensionPath = path.resolve(__dirname, '..');
+        const nodeModulesPath = path.join(extensionPath, 'node_modules');
+        const youtubeDlExecPath = path.join(nodeModulesPath, 'youtube-dl-exec');
+        const binPath = path.join(youtubeDlExecPath, 'bin');
+        
+        console.log(`[YT-DLP] Trying alternative path: ${binPath}`);
+        
+        if (!fs.existsSync(binPath)) {
+            console.error(`[YT-DLP] Alternative bin directory does not exist: ${binPath}`);
+            return undefined;
+        }
+        
+        if (isWindows) {
+            const exePath = path.join(binPath, 'yt-dlp.exe');
+            const noExtPath = path.join(binPath, 'yt-dlp');
+            
+            if (fs.existsSync(exePath)) {
+                return exePath;
+            }
+            
+            if (fs.existsSync(noExtPath)) {
+                // Try to create .exe copy
+                try {
+                    fs.copyFileSync(noExtPath, exePath);
+                    console.log(`[YT-DLP] ✓ Created .exe copy via alternative method: ${exePath}`);
+                    return exePath;
+                } catch (err: any) {
+                    console.warn(`[YT-DLP] Could not create .exe copy: ${err.message}`);
+                    return exePath; // Return .exe path anyway
+                }
+            }
+        } else {
+            const unixPath = path.join(binPath, 'yt-dlp');
+            if (fs.existsSync(unixPath)) {
+                return unixPath;
+            }
+        }
+    } catch (err: any) {
+        console.error(`[YT-DLP] Error in alternative path resolution: ${err.message}`);
+    }
+    
+    return undefined;
+}
+
+/**
+ * Initializes the youtube-dl-exec instance with the correct binary path.
+ * This handles platform-specific issues, especially on Windows.
+ */
+let youtubedl: ReturnType<typeof create> | null = null;
+
+function initializeYoutubeDl(): ReturnType<typeof create> {
+    if (youtubedl) {
+        return youtubedl;
+    }
+    
+    const binaryPath = getYtDlpBinaryPath();
+    
+    if (binaryPath) {
+        console.log(`[YT-DLP] Initializing with binary path: ${binaryPath}`);
+        try {
+            youtubedl = create(binaryPath);
+            console.log(`[YT-DLP] Successfully initialized youtube-dl-exec`);
+            return youtubedl;
+        } catch (err: any) {
+            console.error(`[YT-DLP] Error initializing with custom path: ${err.message}`);
+            console.log(`[YT-DLP] Falling back to default initialization`);
+        }
+    } else {
+        console.warn(`[YT-DLP] Binary path not found, using default initialization`);
+    }
+    
+    // Fallback to default initialization
+    try {
+        const defaultYtDl = require('youtube-dl-exec');
+        const initialized = typeof defaultYtDl === 'function' ? defaultYtDl : defaultYtDl.default || defaultYtDl;
+        youtubedl = initialized as ReturnType<typeof create>;
+        console.log(`[YT-DLP] Using default youtube-dl-exec initialization`);
+        return youtubedl;
+    } catch (err: any) {
+        console.error(`[YT-DLP] Failed to initialize youtube-dl-exec: ${err.message}`);
+        throw new Error(`Failed to initialize youtube-dl-exec: ${err.message}`);
+    }
+}
+
 // why the retry??? well just for backup if the download fails
 //  to do : but to fix the issue when window1 is playing , but i playnext in window2 , it is tryign to download same thing , some conflict is coming then
-export async function downloadTrack(url: string, path: string): Promise<void> {
+export async function downloadTrack(url: string, downloadPath: string): Promise<void> {
     console.log(`[DOWNLOAD] Starting download from URL: ${url}`);
-    console.log(`[DOWNLOAD] Download destination: ${path}`);
+    console.log(`[DOWNLOAD] Download destination: ${downloadPath}`);
     let attempts = 0;
     const maxAttempts = 3;
+
+    // Ensure youtube-dl-exec is initialized
+    const ytDl = initializeYoutubeDl();
 
     while (attempts < maxAttempts) {
         try {
             console.log(`[DOWNLOAD] Attempt ${attempts + 1} of ${maxAttempts} - Downloading audio...`);
-            await youtubedl(url, {
-                output: path,
+            await ytDl(url, {
+                output: downloadPath,
                 format: 'bestaudio/best', // Don't restrict to webm
             });
-            console.log(`[DOWNLOAD] ✓ Download completed successfully: ${path}`);
+            console.log(`[DOWNLOAD] ✓ Download completed successfully: ${downloadPath}`);
             return;
         } catch (err: any) {
             attempts++;
+            const errorMessage = err.stderr || err.stdout || err.message || String(err);
+            const errorCode = err.code || err.errno;
+            
             console.error(`[DOWNLOAD] ✗ Download failed (attempt ${attempts} of ${maxAttempts})`);
-            console.error(`[DOWNLOAD] Error details:`, err.stderr || err.stdout || err.message || err);
+            console.error(`[DOWNLOAD] Error code: ${errorCode}`);
+            console.error(`[DOWNLOAD] Error details:`, errorMessage);
+            
+            // Check for Windows-specific ENOENT errors
+            if (errorCode === 'ENOENT' || err.errno === -4058) {
+                console.error(`[DOWNLOAD] ENOENT error detected - binary not found or not executable`);
+                console.error(`[DOWNLOAD] This is likely a Windows binary path issue`);
+                
+                // On last attempt, provide helpful error message
+                if (attempts >= maxAttempts) {
+                    const platform = os.platform();
+                    if (platform === 'win32') {
+                        const helpfulMessage = `Download failed: yt-dlp binary not found or not executable on Windows. ` +
+                            `Please ensure youtube-dl-exec package is properly installed. ` +
+                            `The binary should be at: node_modules/youtube-dl-exec/bin/yt-dlp.exe`;
+                        console.error(`[DOWNLOAD] ${helpfulMessage}`);
+                        throw new Error(helpfulMessage);
+                    }
+                }
+            }
+            
             if (attempts >= maxAttempts) {
                 console.error(`[DOWNLOAD] ✗ Download failed after ${maxAttempts} attempts. Giving up.`);
-                throw new Error('Download failed after 3 attempts');
+                throw new Error(`Download failed after ${maxAttempts} attempts: ${errorMessage}`);
             }
             console.log(`[DOWNLOAD] Retrying download...`);
+            
+            // Add a small delay before retry
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
         }
     }
 }
