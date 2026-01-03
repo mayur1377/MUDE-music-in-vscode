@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.13]
+
+- **Major optimization**: Reduced extension package size from ~38MB to 4.08MB (89% reduction)
+- Implemented esbuild bundling for better performance and smaller package size
+- Bundled `ytmusic-api` and its dependencies (axios, tough-cookie, zod) into the extension bundle
+- Excluded all dev dependencies and unnecessary files from the package
+- Removed unused `genius-lyrics-api` dependency
+- Updated `.vscodeignore` to exclude test files, documentation, and development artifacts
+- Fixed bundling issues with `youtube-dl-exec` and `node-mpv` by keeping them external (required for binary execution)
+
 ## [1.0.12]
 
 - Enhanced error handling and logging for media playback and recommendations
