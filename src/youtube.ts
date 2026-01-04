@@ -79,11 +79,13 @@ function getYtDlpBinaryPath(): string | undefined {
                             } catch (copyErr: any) {
                                 console.warn(`[YT-DLP] Could not create .exe copy: ${copyErr.message}`);
                                 console.warn(`[YT-DLP] This may be a permissions issue. Trying alternative approach...`);
-                                
-                                // Alternative: Try to use the binary directly but with .exe in the path
-                                // Some systems might accept this
-                                console.log(`[YT-DLP] Attempting to use .exe path anyway: ${exePath}`);
-                                return exePath;
+
+                                // Do NOT return exePath here: the copy operation just failed, so exePath
+                                // is very likely to not exist and would cause persistent ENOENT errors
+                                // once youtube-dl-exec is cached. Returning undefined triggers fallback
+                                // initialization so we don't cache a broken path.
+                                console.log(`[YT-DLP] Falling back to default initialization (not caching non-existent .exe path)`);
+                                return undefined;
                             }
                         } else {
                             // .exe already exists, use it
@@ -154,7 +156,9 @@ function getYtDlpBinaryPathAlternative(): string | undefined {
                     return exePath;
                 } catch (err: any) {
                     console.warn(`[YT-DLP] Could not create .exe copy: ${err.message}`);
-                    return exePath; // Return .exe path anyway
+                    // Do NOT return exePath here: if the copy failed, exePath likely does not exist.
+                    // Returning undefined triggers fallback initialization and avoids caching a broken path.
+                    return undefined;
                 }
             }
         } else {
