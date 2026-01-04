@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.15]
+
+- **Fixed Windows compatibility issue**: Resolved issue where yt-dlp binary couldn't be executed on Windows 11. The extension now automatically creates a `.exe` copy of the binary when needed. [Issue #7](https://github.com/mayur1377/MUDE-music-in-vscode/issues/7)
+- Improved error handling and logging for YouTube download failures on Windows
+- Enhanced binary path resolution to handle platform-specific executable requirements
+
 ## [1.0.14]
 - version mismatch fix
 
