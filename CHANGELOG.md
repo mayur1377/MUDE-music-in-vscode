@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.16]
+
+- **Fixed YouTube Music search API errors**: Upgraded `ytmusic-api` to v5.3.1 to fix HTTP 400 errors when searching for tracks
+
 ## [1.0.15]
 
 - **Fixed Windows compatibility issue**: Resolved issue where yt-dlp binary couldn't be executed on Windows 11. The extension now automatically creates a `.exe` copy of the binary when needed. [Issue #7](https://github.com/mayur1377/MUDE-music-in-vscode/issues/7)
