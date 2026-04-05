@@ -5,9 +5,27 @@ import { downloadTrack, getSearchPick } from './youtube';
 import { player } from './player';
 import { getRecommendations } from './getRecommendations';
 import { recommendations, currentRecommendationIndex, resetRecommendations, addRecommendation, updateRecommendationIndex } from './recommendations';
+import { refreshMudeSidebar } from './sidebarView';
 import * as path from 'path';
 
 let currentStopHandler: (() => void) | null = null;
+
+type PlaybackRequest = { id: number; signal: AbortSignal };
+
+let activePlaybackRequestId = 0;
+let activePlaybackAbortController: AbortController | null = null;
+
+function startPlaybackRequest(): PlaybackRequest {
+    const previousAbortController = activePlaybackAbortController;
+    activePlaybackAbortController = new AbortController();
+    activePlaybackRequestId += 1;
+    previousAbortController?.abort();
+    return { id: activePlaybackRequestId, signal: activePlaybackAbortController.signal };
+}
+
+function isPlaybackRequestCurrent(id: number): boolean {
+    return id === activePlaybackRequestId;
+}
 
 export function getDownloadPath(context: vscode.ExtensionContext): string {
     const filePath = path.join(context.globalStorageUri.fsPath, 'youtube_download.webm');
@@ -28,32 +46,63 @@ export async function searchYoutube(context: vscode.ExtensionContext) {
         console.log('[SEARCH] No track selected, exiting');
         return;
     }
+
+    const playbackRequest = startPlaybackRequest();
+    const shouldAbort = () => playbackRequest.signal.aborted || !isPlaybackRequestCurrent(playbackRequest.id);
     
     // @ts-expect-error
     const baseurl = `https://www.youtube.com/watch?v=${pick.data.videoId}`;
     // @ts-expect-error
     const ytmusicurl = `https://music.youtube.com/watch?v=${pick.data.videoId}`;
     // @ts-expect-error
+    const artistName = pick.data.artist?.name || '';
+    // @ts-expect-error
     console.log(`[SEARCH] Selected track: ${pick.data.name} (Video ID: ${pick.data.videoId})`);
     console.log(`[SEARCH] YouTube URL: ${baseurl}`);
     console.log(`[SEARCH] YouTube Music URL: ${ytmusicurl}`);
+    console.log(`[SEARCH] Pick: ${pick}`);
+    await context.globalState.update('currentTrackArtist', artistName);
+
+    // New search: show skeleton on album/title/time while recommendations + download run.
+    await context.globalState.update('sidebarTrackLoading', true);
+    await context.globalState.update('sidebarRecommendationsLoading', true);
+    refreshMudeSidebar();
 
     // SCRAPE RECOMMENDATIONS IMMEDIATELY
     console.log('[RECOMMENDATIONS] Resetting recommendations...');
-    resetRecommendations();
-    await context.globalState.update('recommendations', []);
-    await context.globalState.update('currentRecommendationIndex', 0);
+    try {
+        resetRecommendations();
+        await context.globalState.update('recommendations', []);
+        await context.globalState.update('currentRecommendationIndex', 0);
 
-    console.log('[RECOMMENDATIONS] Fetching recommendations...');
-    const newRecommendations = await getRecommendations(ytmusicurl);
-    console.log(`[RECOMMENDATIONS] Found ${newRecommendations.length} recommendations`);
-    newRecommendations.forEach(addRecommendation); // Store recommendations globally
+        console.log('[RECOMMENDATIONS] Fetching recommendations...');
+        const newRecommendations = await getRecommendations(ytmusicurl);
+        if (shouldAbort()) {
+            return;
+        }
+        console.log(`[RECOMMENDATIONS] Found ${newRecommendations.length} recommendations`);
+        newRecommendations.forEach(addRecommendation); // Store recommendations globally
 
-    // Update global state
-    await context.globalState.update('recommendations', recommendations);
-    await context.globalState.update('currentRecommendationIndex', currentRecommendationIndex);
-    vscode.commands.executeCommand('extension.refreshRecommendations');
-    console.log('[RECOMMENDATIONS] Recommendations stored and refreshed');
+        // Update global state
+        await context.globalState.update('recommendations', recommendations);
+        await context.globalState.update('currentRecommendationIndex', currentRecommendationIndex);
+        vscode.commands.executeCommand('extension.refreshRecommendations');
+        console.log('[RECOMMENDATIONS] Recommendations stored and refreshed');
+    } catch (err) {
+        if (shouldAbort()) {
+            return;
+        }
+        await context.globalState.update('sidebarRecommendationsLoading', false);
+        await context.globalState.update('sidebarTrackLoading', false);
+        refreshMudeSidebar();
+        throw err;
+    }
+
+    if (shouldAbort()) {
+        return;
+    }
+    await context.globalState.update('sidebarRecommendationsLoading', false);
+    refreshMudeSidebar();
 
     // Start playing the selected track
     // @ts-expect-error
@@ -62,13 +111,26 @@ export async function searchYoutube(context: vscode.ExtensionContext) {
     // @ts-expect-error
     console.log(`[PLAYBACK] Starting to process track: ${pick.label}`);
     // @ts-expect-error
-    await processTrack(context, baseurl, pick.label, ytmusicurl);
+    await processTrack(context, baseurl, pick.label, ytmusicurl, playbackRequest);
 }
 
-export async function processTrack(context: vscode.ExtensionContext, url: string, title: string, ytmusicurl: string) {
+export async function processTrack(
+    context: vscode.ExtensionContext,
+    url: string,
+    title: string,
+    ytmusicurl: string,
+    request?: PlaybackRequest
+) {
     console.log(`[PLAYBACK] processTrack called for: ${title}`);
     console.log(`[PLAYBACK] URL: ${url}`);
+    const playbackRequest = request ?? startPlaybackRequest();
+    const shouldAbort = () => playbackRequest.signal.aborted || !isPlaybackRequestCurrent(playbackRequest.id);
+
+    await context.globalState.update('sidebarTrackLoading', true);
+    refreshMudeSidebar();
     await stoppedState(context); // Ensure stopped state is shown while downloading
+    await context.globalState.update('currentTrackThumbnail', '');
+    vscode.commands.executeCommand('extension.refreshYoutubeLabelButton');
     const downloadPath = getDownloadPath(context);
 
     try {
@@ -80,7 +142,10 @@ export async function processTrack(context: vscode.ExtensionContext, url: string
         console.log(`[PLAYBACK] Download path: ${downloadPath}`);
         console.log(`[PLAYBACK] YTMusic URL: ${ytmusicurl}`);
         
-        await downloadTrack(url, downloadPath);
+        await downloadTrack(url, downloadPath, playbackRequest.signal);
+        if (shouldAbort()) {
+            return;
+        }
         
         console.log(`[PLAYBACK] Download completed, updating status bar for: ${title}`);
         await context.globalState.update('youtubeLabelButton', title);
@@ -88,22 +153,61 @@ export async function processTrack(context: vscode.ExtensionContext, url: string
         await context.globalState.update('lastPlayedFilePath', downloadPath);
         console.log(`[PLAYBACK] Stored last played file path: ${downloadPath}`);
         vscode.commands.executeCommand('extension.refreshYoutubeLabelButton');
+        if (shouldAbort()) {
+            return;
+        }
         
         console.log(`[PLAYBACK] Setting player to playing state`);
         await playingState(context);
+        if (shouldAbort()) {
+            return;
+        }
 
         console.log(`[PLAYBACK] Loading track into MPV player: ${downloadPath}`);
         await player.load(downloadPath);
+        if (shouldAbort()) {
+            return;
+        }
         console.log(`[PLAYBACK] Track loaded, starting playback`);
         await player.play();
+        if (shouldAbort()) {
+            return;
+        }
+
+        // Resolve artist from playback metadata to avoid "Unknown Artist" on sparse recommendation payloads.
+        const metadataArtist = await getArtistFromPlayerMetadata();
+        if (shouldAbort()) {
+            return;
+        }
+        if (metadataArtist) {
+            await context.globalState.update('currentTrackArtist', metadataArtist);
+        }
+        if (shouldAbort()) {
+            return;
+        }
+        const playbackThumbnail = getThumbnailFromPlaybackUrls(ytmusicurl, url);
+        await context.globalState.update('currentTrackThumbnail', playbackThumbnail);
+        console.log(`[PLAYBACK] Stored thumbnail URL after playback start: ${playbackThumbnail}`);
+        vscode.commands.executeCommand('extension.refreshYoutubeLabelButton');
         console.log(`[PLAYBACK] ✓ Playback started successfully for: ${title}`);
 
+        if (shouldAbort()) {
+            return;
+        }
         registerStopHandler(context);
         console.log(`[PLAYBACK] Stop handler registered for automatic next track`);
     } catch (error) {
+        if (shouldAbort()) {
+            return;
+        }
         console.error(`[PLAYBACK] ✗ Error processing track "${title}":`, error);
         youtubeLabelButton.text = `$(error) Error loading ${title}`;
         await stoppedState(context);
+    } finally {
+        if (!shouldAbort()) {
+            await context.globalState.update('sidebarTrackLoading', false);
+            refreshMudeSidebar();
+        }
     }
 }
 
@@ -129,6 +233,7 @@ function registerStopHandler(context: vscode.ExtensionContext) {
             vscode.commands.executeCommand('extension.refreshRecommendations');
 
             let ytmusicurl = `https://music.youtube.com/watch?v=${nextRecommendation.videoId}`;
+            await context.globalState.update('currentTrackArtist', nextRecommendation.artistName || '');
             console.log(`[PLAYBACK] Processing next track: ${nextRecommendation.title}`);
             await processTrack(context, ytmusicurl, nextRecommendation.title, ytmusicurl);
             await playingState(context); // Ensure playing state is shown when the next track starts
@@ -141,4 +246,68 @@ function registerStopHandler(context: vscode.ExtensionContext) {
     };
     
     player.on('stopped', currentStopHandler);
+}
+
+function getBestThumbnailUrl(videoId: string, fallbackUrl: string): string {
+    if (videoId && videoId.trim()) {
+        return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    }
+    return normalizeThumbnailQuality(fallbackUrl);
+}
+
+function normalizeThumbnailQuality(url: string): string {
+    if (!url) {
+        return '';
+    }
+    return url.replace(/=w\d+-h\d+(-[a-z0-9-]+)?/i, '=w544-h544');
+}
+
+function getThumbnailFromPlaybackUrls(preferredUrl: string, fallbackUrl: string): string {
+    const preferredId = extractVideoId(preferredUrl);
+    if (preferredId) {
+        return `https://i.ytimg.com/vi/${preferredId}/hqdefault.jpg`;
+    }
+    const fallbackId = extractVideoId(fallbackUrl);
+    if (fallbackId) {
+        return `https://i.ytimg.com/vi/${fallbackId}/hqdefault.jpg`;
+    }
+    return '';
+}
+
+function extractVideoId(videoUrl: string): string {
+    if (!videoUrl) {
+        return '';
+    }
+    try {
+        const parsed = new URL(videoUrl);
+        return parsed.searchParams.get('v') ?? '';
+    } catch {
+        return '';
+    }
+}
+
+async function getArtistFromPlayerMetadata(): Promise<string> {
+    try {
+        const metadata = await player.getProperty('metadata');
+        if (!metadata || typeof metadata !== 'object') {
+            return '';
+        }
+        const m = metadata as Record<string, unknown>;
+        const candidates = [
+            m.artist,
+            m.ARTIST,
+            m['album_artist'],
+            m['ALBUM_ARTIST'],
+            m.performer,
+            m.PERFORMER,
+        ];
+        for (const c of candidates) {
+            if (typeof c === 'string' && c.trim()) {
+                return c.trim();
+            }
+        }
+    } catch {
+        // Some streams may not expose metadata.
+    }
+    return '';
 }

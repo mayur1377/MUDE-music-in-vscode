@@ -3,6 +3,9 @@ import { player } from './player';
 import { searchYoutube } from './searchYoutube';
 import { recommendations, currentRecommendationIndex } from './recommendations';
 import { updateRecommendationIndex } from './recommendations';
+import { refreshMudeSidebar } from './sidebarView';
+
+let statusBarContext: vscode.ExtensionContext | undefined;
 
 export let togglePauseButton: vscode.StatusBarItem;
 export let seekForwardButton: vscode.StatusBarItem;
@@ -14,6 +17,7 @@ export let timestampButton: vscode.StatusBarItem;
 export let logoButton: vscode.StatusBarItem;
 
 export async function statusBar(context: vscode.ExtensionContext) {
+    statusBarContext = context;
     seekBackwordButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 185);
     seekBackwordButton.command = 'MudePlayer.seekBackword';
     seekBackwordButton.text = '$(chevron-left)';
@@ -66,6 +70,7 @@ export async function statusBar(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('extension.refreshYoutubeLabelButton', () => {
             let newValue = context.globalState.get<string>('youtubeLabelButton', '');
             youtubeLabelButton.text = newValue;
+            refreshMudeSidebar();
         }),
         vscode.commands.registerCommand('extension.refreshRecommendations', () => {
             const newRecommendations = context.globalState.get<{ videoId: string, title: string }[]>('recommendations', []);
@@ -81,6 +86,7 @@ export async function statusBar(context: vscode.ExtensionContext) {
             } else {
                 await stoppedState(context);
             }
+            refreshMudeSidebar();
         })
     );
 
@@ -118,9 +124,9 @@ player.on('started', async () => {
     togglePauseButton.tooltip = 'Pause';
     togglePauseButton.text = '$(debug-pause)';
     updateTooltips(); // Update tooltips when playback starts
-    // await context.globalState.update('isPlaying', true);
     vscode.commands.executeCommand('extension.refreshRecommendations');
     vscode.commands.executeCommand('extension.refreshState');
+    // Keep existing position data so progress doesn't snap to 0 during seek.
 });
 
 player.on('stopped', async () => {
@@ -129,6 +135,9 @@ player.on('stopped', async () => {
     // await context.globalState.update('isPlaying', false);
     vscode.commands.executeCommand('extension.refreshRecommendations');
     vscode.commands.executeCommand('extension.refreshState');
+    if (statusBarContext) {
+        await statusBarContext.globalState.update('currentTrackTimeSeconds', 0);
+    }
 });
 
 // Function to update both next and previous buttons' tooltips
@@ -160,6 +169,17 @@ export async function stoppedState(context: vscode.ExtensionContext) {
 player.on('timeposition', async (timePosition: number) => {
     const time = new Date(timePosition * 1000).toISOString();
     timestampButton.text = timePosition < 3600 ? time.substring(14, 19) : time.substring(11, 19);
+    if (statusBarContext) {
+        await statusBarContext.globalState.update('currentTrackTimeSeconds', timePosition);
+        try {
+            const duration = await player.getProperty('duration');
+            if (typeof duration === 'number' && Number.isFinite(duration) && duration > 0) {
+                await statusBarContext.globalState.update('currentTrackDurationSeconds', duration);
+            }
+        } catch {
+            // Duration can be unavailable for some streams; keep last known value.
+        }
+    }
     updateTooltips();
     vscode.commands.executeCommand('extension.refreshYoutubeLabelButton');
     vscode.commands.executeCommand('extension.refreshRecommendations');
