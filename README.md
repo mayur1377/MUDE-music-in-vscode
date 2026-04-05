@@ -1,5 +1,6 @@
 ![MUDE Player Screenshot](./media/icon.png)
 
+![MUDE Player Sidebar](./media/sidebar.png)
 **MUDE Player** is a minimalistic music player integrated into your favorite editor, allowing you to play ad-free music from the comfort of your workspace.
 
 ## Features
