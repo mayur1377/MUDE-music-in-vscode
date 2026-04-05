@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.0]
+
+- **Sidebar**: “MUDE Now Playing” webview with album art, transport, seek, volume, and Up Next list; responsive layouts for narrow vs short panels; loading skeletons; welcome screen when nothing has played yet; shows pending track title/artist while downloading.
+- **Keyboard shortcuts** (sidebar focused): **Space** toggles play/pause; **/** opens search.
+- **Command**: `MUDE: Reset Local Player State` clears cached download, queue, and UI state (useful for testing or a clean slate).
+
 ## [1.0.16]
 
 - **Fixed YouTube Music search API errors**: Upgraded `ytmusic-api` to v5.3.1 to fix HTTP 400 errors when searching for tracks

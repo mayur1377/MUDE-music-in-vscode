@@ -17,6 +17,7 @@ export async function downloadAndPlayNext(context: vscode.ExtensionContext) {
 
         let ytmusicurl = `https://music.youtube.com/watch?v=${nextRecommendation.videoId}`;
         console.log(`[NEXT] Starting download and playback for: ${nextRecommendation.title}`);
+        await context.globalState.update('currentTrackArtist', nextRecommendation.artistName || '');
         await processTrack(context, ytmusicurl, nextRecommendation.title, ytmusicurl); // Call your processTrack with the next recommendation
     } else {
         console.log(`[NEXT] No more tracks available. Current index: ${currentRecommendationIndex}, Total: ${recommendations.length}`);
@@ -24,7 +25,7 @@ export async function downloadAndPlayNext(context: vscode.ExtensionContext) {
     }
 }
 
-export function addToNextAndPlay(context: vscode.ExtensionContext) {
+export async function addToNextAndPlay(context: vscode.ExtensionContext) {
     console.log(`[NEXT] Play next button clicked. Current index: ${currentRecommendationIndex}, Total recommendations: ${recommendations.length}`);
     if (currentRecommendationIndex < recommendations.length) {
         const nextRecommendation = recommendations[currentRecommendationIndex];
@@ -32,21 +33,22 @@ export function addToNextAndPlay(context: vscode.ExtensionContext) {
         updateRecommendationIndex(currentRecommendationIndex + 1);  // Update index globally
 
         // Update global state
-        context.globalState.update('recommendations', recommendations);
-        context.globalState.update('currentRecommendationIndex', currentRecommendationIndex);
+        await context.globalState.update('recommendations', recommendations);
+        await context.globalState.update('currentRecommendationIndex', currentRecommendationIndex);
         vscode.commands.executeCommand('extension.refreshRecommendations');
         console.log(`[NEXT] Updated recommendation index to: ${currentRecommendationIndex}`);
 
         let ytmusicurl = `https://music.youtube.com/watch?v=${nextRecommendation.videoId}`;
-        console.log(`[NEXT] Starting download and playback for: ${nextRecommendation.title}`);
-        processTrack(context, ytmusicurl, nextRecommendation.title, ytmusicurl); // Call your processTrack with the next recommendation
+        console.log(`[NEXT] Starting download and playback for: ${nextRecommendation.title}`);        
+        await context.globalState.update('currentTrackArtist', nextRecommendation.artistName || '');
+        await processTrack(context, ytmusicurl, nextRecommendation.title, ytmusicurl); // Call your processTrack with the next recommendation
     } else {
         console.log(`[NEXT] No more tracks available. Current index: ${currentRecommendationIndex}, Total: ${recommendations.length}`);
         vscode.window.showWarningMessage("No more tracks next in playlist or recommendations.");
     }
 }
 
-export function addLastToNextAndPlay(context: vscode.ExtensionContext) {
+export async function addLastToNextAndPlay(context: vscode.ExtensionContext) {
     console.log(`[PREVIOUS] Play previous button clicked. Current index: ${currentRecommendationIndex}`);
     if (currentRecommendationIndex > 0) {
         const prevRecommendation = recommendations[currentRecommendationIndex - 1];
@@ -54,14 +56,15 @@ export function addLastToNextAndPlay(context: vscode.ExtensionContext) {
         updateRecommendationIndex(currentRecommendationIndex - 1);  // Update index globally
 
         // Update global state
-        context.globalState.update('recommendations', recommendations);
-        context.globalState.update('currentRecommendationIndex', currentRecommendationIndex);
+        await context.globalState.update('recommendations', recommendations);
+        await context.globalState.update('currentRecommendationIndex', currentRecommendationIndex);
         vscode.commands.executeCommand('extension.refreshRecommendations');
         console.log(`[PREVIOUS] Updated recommendation index to: ${currentRecommendationIndex}`);
 
         let ytmusicurl = `https://music.youtube.com/watch?v=${prevRecommendation.videoId}`;
         console.log(`[PREVIOUS] Starting download and playback for: ${prevRecommendation.title}`);
-        processTrack(context, ytmusicurl, prevRecommendation.title, ytmusicurl); // Call your processTrack with the previous recommendation
+        await context.globalState.update('currentTrackArtist', prevRecommendation.artistName || '');
+        await processTrack(context, ytmusicurl, prevRecommendation.title, ytmusicurl); // Call your processTrack with the previous recommendation
     } else {
         console.log(`[PREVIOUS] No previous tracks available. Current index: ${currentRecommendationIndex}`);
         vscode.window.showWarningMessage("No tracks beyond in playlist or recommendations.");

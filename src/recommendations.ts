@@ -1,5 +1,5 @@
 // Export recommendations and currentRecommendationIndex so they can be used across files.
-export let recommendations: { videoId: string, title: string }[] = [];
+export let recommendations: { videoId: string, title: string, thumbnailUrl?: string, artistName?: string }[] = [];
 export let currentRecommendationIndex = 0;
 
 export function resetRecommendations() {
@@ -7,7 +7,7 @@ export function resetRecommendations() {
     currentRecommendationIndex = 0;
 }
 
-export function addRecommendation(recommendation: { videoId: string, title: string }) {
+export function addRecommendation(recommendation: { videoId: string, title: string, thumbnailUrl?: string, artistName?: string }) {
     recommendations.push(recommendation);
 }
 

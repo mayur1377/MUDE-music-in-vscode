@@ -1,0 +1,643 @@
+/* Theme tokens mapped to the active VS Code theme (dark/light/custom). */
+:root {
+    --background: var(--vscode-editor-background);
+    --foreground: var(--vscode-foreground);
+    --card: var(--vscode-editorWidget-background);
+    --card-foreground: var(--vscode-foreground);
+    /* shadcn/ui-style muted surface for Skeleton */
+    --muted: color-mix(in srgb, var(--vscode-descriptionForeground) 16%, var(--vscode-editor-background));
+    --muted-foreground: var(--vscode-descriptionForeground);
+    --border: var(--vscode-editorWidget-border);
+    --primary: var(--vscode-button-background);
+    --primary-foreground: var(--vscode-button-foreground);
+    --secondary: var(--vscode-button-secondaryBackground, var(--vscode-editorWidget-background));
+    --secondary-foreground: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+    --accent: var(--vscode-list-hoverBackground, var(--vscode-button-hoverBackground));
+    --accent-foreground: var(--vscode-foreground);
+    --ring: var(--vscode-focusBorder);
+    --radius: 10px;
+}
+body.vscode-light,
+body.vscode-high-contrast-light {
+    color-scheme: light;
+}
+body.vscode-dark,
+body.vscode-high-contrast {
+    color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+    font-family: var(--vscode-font-family);
+    color: var(--foreground);
+    background: var(--background);
+    padding: 10px;
+    margin: 0;
+    height: 100vh;
+    overflow: hidden;
+}
+.container {
+display: flex;
+flex-direction: column;
+gap: 10px;
+height: 100%;
+min-height: 0;
+container-type: size;
+container-name: sidebar;
+}
+.header { display: flex; align-items: center; justify-content: space-between; }
+
+.btn {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: inherit;
+    border-radius: calc(var(--radius) - 2px);
+    padding: 6px 10px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font: inherit;
+    font-size: 0.85rem;
+    line-height: 1;
+    transition: background-color 120ms ease, color 120ms ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.btn:hover { background: var(--accent); color: var(--accent-foreground); }
+.btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.btn-icon { width: 32px; height: 32px; padding: 6px; line-height: 0; }
+.btn svg {
+width: 16px;
+height: 16px;
+stroke: currentColor;
+fill: none;
+stroke-width: 2;
+stroke-linecap: round;
+stroke-linejoin: round;
+}
+
+.track {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--card);
+    color: var(--card-foreground);
+    border-radius: var(--radius);
+    padding: 10px;
+    min-width: 0;
+    max-width: 100%;
+}
+/* Wraps title/progress + transport; layout changes via @container on .track */
+.track-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+    width: 100%;
+}
+.track-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; justify-content: center; }
+.thumbnail {
+margin-bottom: 10px;
+display: flex;
+justify-content: center;
+align-self: center;
+/* Allow the art column to shrink with the panel; flex-shrink: 0 kept the box ~max-width while the view narrowed */
+flex-shrink: 1;
+min-width: 0;
+width: 100%;
+max-width: 200px;
+margin-left: auto;
+margin-right: auto;
+}
+/* Fluid art: shrinks with narrow sidebars instead of clipping the card */
+.thumbnail-frame {
+width: 100%;
+max-width: 200px;
+min-width: 0;
+aspect-ratio: 1 / 1;
+height: auto;
+border-radius: var(--radius);
+overflow: hidden;
+background: var(--background);
+border: 1px solid var(--border);
+box-sizing: border-box;
+}
+.thumbnail img {
+width: 100%;
+height: 100%;
+object-fit: cover;
+object-position: center;
+border-radius: 8px;
+display: block;
+/* Extra zoom trims baked-in letterboxing from many YT thumbnails */
+transform: scale(1.33);
+transform-origin: center center;
+}
+/* First-launch / no playback yet */
+.track-empty .thumbnail-placeholder-wrap {
+display: flex;
+align-items: center;
+justify-content: center;
+background: color-mix(in srgb, var(--muted-foreground) 8%, var(--background));
+}
+.thumbnail-placeholder-img {
+width: 52%;
+height: 52%;
+object-fit: contain;
+object-position: center;
+border-radius: 0;
+transform: none;
+opacity: 0.55;
+}
+.track-empty-title {
+font-weight: 600;
+font-size: 1rem;
+text-align: center;
+}
+.track-empty-hint {
+font-size: 0.78rem;
+line-height: 1.35;
+color: var(--muted-foreground);
+text-align: center;
+max-width: 100%;
+}
+.kbd-hint {
+display: inline-block;
+font-family: var(--vscode-editor-font-family, var(--vscode-font-family));
+font-size: 0.72rem;
+padding: 1px 6px;
+border-radius: 4px;
+border: 1px solid var(--border);
+background: var(--vscode-keybindingTable-background, var(--card));
+color: var(--foreground);
+vertical-align: 0.08em;
+}
+.progress-wrap-empty .slider-disabled {
+pointer-events: none;
+opacity: 0.55;
+}
+.progress-wrap-empty .slider-thumb {
+transition: none;
+}
+.rec-empty-placeholder {
+text-align: center;
+line-height: 1.4;
+padding: 8px 4px;
+}
+.track-label {
+font-weight: 600;
+font-size: 0.95rem;
+}
+.track-meta {
+font-size: 0.8rem;
+color: var(--muted-foreground);
+}
+.marquee-wrapper {
+width: 100%;
+overflow: hidden;
+position: relative;
+text-align: center;
+}
+.marquee-wrapper.marquee-on {
+text-align: left;
+}
+.marquee-content {
+display: inline-flex;
+align-items: center;
+gap: var(--marquee-gap, 3rem);
+white-space: nowrap;
+will-change: transform;
+transform: translate3d(0, 0, 0);
+}
+.marquee-active {
+animation: marquee-scroll var(--marquee-duration, 12s) linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+.marquee-active {
+animation: none;
+}
+}
+@keyframes marquee-scroll {
+0% { transform: translate3d(0, 0, 0); }
+100% { transform: translate3d(calc(-1 * var(--marquee-distance, 0px)), 0, 0); }
+}
+.progress-wrap { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.slider {
+position: relative;
+display: flex;
+width: 100%;
+touch-action: none;
+user-select: none;
+-webkit-user-select: none;
+align-items: center;
+height: 16px;
+}
+.slider:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 999px; }
+.slider-track {
+position: relative;
+height: 4px;
+width: 100%;
+flex-grow: 1;
+overflow: hidden;
+border-radius: 999px;
+background: var(--secondary);
+}
+.slider-range {
+position: absolute;
+height: 100%;
+border-radius: 999px;
+background: var(--primary);
+width: 0%;
+}
+.slider-thumb {
+position: absolute;
+top: 50%;
+height: 12px;
+width: 12px;
+border-radius: 999px;
+background: var(--primary);
+border: none;
+transform: translate(-50%, -50%);
+transition: box-shadow 120ms ease;
+}
+.slider-thumb::after {
+content: '';
+position: absolute;
+inset: -6px;
+border-radius: 999px;
+}
+.progress-time {
+display: flex;
+justify-content: space-between;
+font-size: 0.75rem;
+color: var(--muted-foreground);
+}
+.controls {
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+padding: 6px;
+border-radius: var(--radius);
+background: var(--card);
+color: var(--card-foreground);
+position: relative;
+min-width: 0;
+max-width: 100%;
+box-sizing: border-box;
+}
+.controls-center {
+display: flex;
+align-items: center;
+justify-content: center;
+flex-wrap: nowrap;
+gap: 8px;
+width: 100%;
+min-width: 0;
+max-width: 100%;
+box-sizing: border-box;
+}
+.control-button { font-size: 1.05rem; flex-shrink: 0; }
+.volume-popover {
+position: relative;
+display: inline-flex;
+align-items: center;
+}
+.volume-panel {
+position: absolute;
+right: calc(100% + 8px);
+top: 50%;
+width: 120px;
+padding: 8px;
+border-radius: var(--radius);
+background: var(--card);
+box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+z-index: 10;
+opacity: 0;
+visibility: hidden;
+transform: translateY(-50%) translateX(4px);
+transition: opacity 100ms ease 0.5s, transform 100ms ease 0.5s, visibility 0s 0.6s;
+}
+/* Hover "bridge" so moving from icon -> panel doesn't close it */
+.volume-panel::after {
+content: '';
+position: absolute;
+left: 100%;
+top: 0;
+bottom: 0;
+width: 12px;
+}
+.volume-popover:hover .volume-panel,
+.volume-popover:focus-within .volume-panel {
+opacity: 1;
+visibility: visible;
+transform: translateY(-50%) translateX(0);
+transition: opacity 100ms ease 0s, transform 100ms ease 0s, visibility 0s 0s;
+}
+.slider.slider-small { height: 12px; }
+.slider-small .slider-track { height: 3px; }
+.slider-small .slider-thumb { width: 10px; height: 10px; }
+.slider-small:focus-visible { outline-offset: 3px; }
+.speaker-muted { opacity: 0.7; }
+.recommendations {
+margin-top: 6px;
+display: flex;
+flex-direction: column; 
+gap: 6px;
+flex: 1 1 auto;
+min-height: 0;
+}
+.recommendations h3 {
+margin: 0;
+font-size: 0.85rem;
+font-weight: 600;
+color: var(--muted-foreground);
+}
+.rec-list {
+display: flex;
+flex-direction: column;
+gap: 4px;
+flex: 1 1 auto;
+min-height: 0;
+overflow-y: auto;
+padding-right: 2px;
+scroll-behavior: auto;
+}
+.rec-item {
+width: 100%;
+text-align: left;
+border: none;
+background: var(--card);
+color: var(--card-foreground);
+border-radius: var(--radius);
+padding: 8px 10px;
+cursor: pointer;
+display: flex;
+flex-direction: column;
+gap: 2px;
+transition: background-color 120ms ease, color 120ms ease;
+}
+.rec-item:hover {
+background: var(--accent);
+color: var(--accent-foreground);
+}
+.rec-item-active {
+background: var(--vscode-list-activeSelectionBackground, color-mix(in srgb, var(--primary) 14%, var(--background)));
+color: var(--vscode-list-activeSelectionForeground, var(--foreground));
+}
+.rec-title {
+font-size: 0.82rem;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+.rec-artist {
+font-size: 0.72rem;
+color: var(--muted-foreground);
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+.rec-empty {
+font-size: 0.78rem;
+color: var(--muted-foreground);
+padding: 4px 0;
+}
+/* shadcn/ui Skeleton — pulse animation + rounded blocks */
+@keyframes skeleton-pulse {
+0%, 100% { opacity: 1; }
+50% { opacity: 0.45; }
+}
+.skeleton {
+display: block;
+background-color: var(--muted);
+border-radius: calc(var(--radius) - 4px);
+animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.skeleton-thumb {
+width: 100%;
+height: 100%;
+border-radius: var(--radius);
+}
+.thumbnail-frame-loading {
+display: flex;
+align-items: stretch;
+}
+.skeleton-line {
+height: 0.85rem;
+margin: 0 auto;
+}
+.skeleton-line-title {
+width: 72%;
+max-width: 220px;
+height: 1rem;
+}
+.skeleton-line-meta {
+width: 48%;
+max-width: 140px;
+height: 0.72rem;
+margin-top: 2px;
+}
+.skeleton-line-time {
+width: 2.25rem;
+height: 0.7rem;
+margin: 0;
+}
+.skeleton-slider-bar {
+width: 100%;
+height: 8px;
+border-radius: 999px;
+}
+.progress-wrap-skeleton {
+gap: 8px;
+}
+.progress-time-skeleton {
+justify-content: space-between;
+}
+.rec-item.rec-skeleton {
+cursor: default;
+pointer-events: none;
+}
+.rec-item.rec-skeleton:hover {
+background: var(--card);
+color: var(--card-foreground);
+}
+.skeleton-rec-title {
+width: 88%;
+height: 0.78rem;
+}
+.skeleton-rec-artist {
+width: 55%;
+height: 0.65rem;
+}
+
+/* Narrow width (tall sidebar): tighter transport only — do not reduce thumbnail zoom here; that revealed YT letterboxing inside a fixed-feeling frame */
+@container sidebar (max-width: 300px) {
+    .controls {
+        padding: 5px 4px;
+        gap: 4px;
+    }
+    .controls-center {
+        gap: 4px;
+    }
+    .btn-icon.control-button {
+        width: 28px;
+        height: 28px;
+        padding: 4px;
+        font-size: 0.98rem;
+    }
+}
+@container sidebar (max-width: 240px) {
+    .controls {
+        padding: 4px 2px;
+    }
+    .controls-center {
+        gap: 2px;
+    }
+    .btn-icon.control-button {
+        width: 26px;
+        height: 26px;
+        padding: 3px;
+        font-size: 0.92rem;
+    }
+}
+
+/* Responsive layout adjustments for short heights
+   — Tall: default column (art → stack → recs)
+   — Medium (421–480px): art left, meta right row; controls full width below
+   — Compact (≤420px): art left; title, artist, progress, controls stacked on the right
+   — ≤380px: hide Up Next (very little vertical space) */
+
+@container sidebar (max-height: 480px) and (min-height: 421px) {
+    .track {
+        display: grid;
+        grid-template-columns: minmax(0, 100px) minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        column-gap: 12px;
+        row-gap: 10px;
+        align-items: start;
+    }
+    .thumbnail {
+        margin-bottom: 0;
+        justify-content: flex-start;
+        grid-column: 1;
+        grid-row: 1;
+        width: 100%;
+        min-width: 0;
+    }
+    .thumbnail-frame {
+        width: 100%;
+        max-width: 100px;
+        min-width: 0;
+        aspect-ratio: 1 / 1;
+        height: auto;
+    }
+    /* Flatten wrapper so title row and controls can sit on different grid rows */
+    .track-stack {
+        display: contents;
+    }
+    .track-info {
+        grid-column: 2;
+        grid-row: 1;
+        gap: 4px;
+        align-items: flex-start;
+        min-width: 0;
+    }
+    .controls {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        min-width: 0;
+    }
+    .track-label.marquee-wrapper,
+    .track-meta.marquee-wrapper {
+        text-align: left;
+    }
+    .progress-wrap {
+        width: 100%;
+        margin-top: 4px;
+    }
+}
+
+@container sidebar (max-height: 420px) {
+    .track {
+        display: grid;
+        grid-template-columns: minmax(0, 72px) minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        column-gap: 10px;
+        row-gap: 8px;
+        align-items: start;
+    }
+    .thumbnail {
+        margin-bottom: 0;
+        justify-content: flex-start;
+        grid-column: 1;
+        grid-row: 1;
+        align-self: start;
+        width: 100%;
+        min-width: 0;
+    }
+    .thumbnail-frame {
+        width: 100%;
+        max-width: 72px;
+        min-width: 0;
+        aspect-ratio: 1 / 1;
+        height: auto;
+    }
+    /* Split stack so metadata stays beside art; controls use full row (incl. space under art) */
+    .track-stack {
+        display: contents;
+    }
+    .track-info {
+        grid-column: 2;
+        grid-row: 1;
+        gap: 2px;
+        align-items: flex-start;
+        width: 100%;
+        min-width: 0;
+    }
+    .controls {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        padding: 4px 4px;
+        gap: 4px;
+        min-width: 0;
+    }
+    .track-label.marquee-wrapper,
+    .track-meta.marquee-wrapper {
+        text-align: left;
+    }
+    .track-label {
+        font-size: 0.88rem;
+    }
+    .track-meta {
+        font-size: 0.75rem;
+    }
+    .progress-wrap {
+        width: 100%;
+        margin-top: 0;
+    }
+    .controls-center {
+        justify-content: center;
+        flex-wrap: nowrap;
+        gap: 4px;
+    }
+    .control-button {
+        font-size: 0.95rem;
+    }
+}
+
+@container sidebar (max-height: 380px) {
+    .recommendations {
+        display: none;
+    }
+}
+
+/* Empty-state copy aligns with other track text in short sidebars */
+@container sidebar (max-height: 480px) {
+    .track-empty .track-empty-title,
+    .track-empty .track-empty-hint {
+        text-align: left;
+    }
+}
